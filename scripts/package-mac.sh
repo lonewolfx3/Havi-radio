@@ -12,7 +12,15 @@ mkdir -p "$stage/root"
 ditto "$plugin" "$stage/root/Havi Radio.vst3"
 # Prevent Installer from relocating an existing copy outside the VST3 folder.
 pkgbuild --analyze --root "$stage/root" "$stage/components.plist"
-/usr/libexec/PlistBuddy -c 'Set :0:BundleIsRelocatable false' "$stage/components.plist"
+python3 - "$stage/components.plist" <<'PYPLIST'
+import plistlib, sys
+with open(sys.argv[1], 'rb') as f:
+    components = plistlib.load(f)
+for component in components:
+    component['BundleIsRelocatable'] = False
+with open(sys.argv[1], 'wb') as f:
+    plistlib.dump(components, f)
+PYPLIST
 pkgbuild --root "$stage/root" --component-plist "$stage/components.plist" \
   --identifier com.havilegrand.haviradio.installer --version 0.2.0 \
   --install-location /Library/Audio/Plug-Ins/VST3 \

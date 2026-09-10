@@ -20,7 +20,7 @@ jobs:
           Expand-Archive "$env:RUNNER_TEMP/pluginval.zip" "$env:RUNNER_TEMP/pluginval"
           $validator = Get-ChildItem "$env:RUNNER_TEMP/pluginval" -Recurse -Filter pluginval.exe | Select-Object -First 1
           if (-not $validator) { throw 'pluginval executable missing' }
-          & $validator.FullName --strictness-level 5 --validate 'build-windows/HaviRadio_artefacts/Release/VST3/Havi Radio.vst3'
+          & $validator.FullName --strictness-level 5 --validate 'build-windows/HaviRadio_artefacts/Release/VST3/Havi Radio.vst3' | Out-Host
           if ($LASTEXITCODE -ne 0) { throw 'VST3 validation failed' }
       - name: Install NSIS
         shell: pwsh
