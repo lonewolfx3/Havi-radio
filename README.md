@@ -2,7 +2,7 @@
 
 Vocal radio-effect VST3 project using your supplied Radio Box artwork. The host plug-in name remains **Havi Radio** to preserve the original project identity.
 
-**Delivery status: source code and build automation only. No compiled Mac or Windows plug-in is included.** The native editor and VST3 wrapper have not been compiled here; FL Studio compatibility and appearance still require native testing. The standalone DSP and meter tests passed on Linux.
+**Build status: Windows x64 and Apple Silicon VST3s compiled successfully, passed standalone DSP tests and pluginval strictness level 5, and were packaged into installers.** Download the artifacts from the successful [build run](https://github.com/lonewolfx3/Havi-radio/actions/runs/34434727377). Windows includes an `.exe` installer; Mac includes a `.pkg`. They are unsigned development installers, and the Mac package is not notarized. FL Studio 2026 listening and installation tests remain to be completed.
 
 ## Requested targets
 
@@ -11,7 +11,7 @@ Vocal radio-effect VST3 project using your supplied Radio Box artwork. The host 
 | Apple Silicon Mac | Native arm64, macOS 11 or later | FL Studio 2026 running natively |
 | Windows 10/11 | x64 | FL Studio 2026 64-bit |
 
-These are build targets, not a claim of verified compatibility. FL Studio's own OS requirements also apply. This version does not target Windows ARM or Intel Macs.
+Native builds and automated plug-in validation passed for both targets. This does not establish tested FL Studio compatibility. FL Studio's own OS requirements also apply. This version does not target Windows ARM or Intel Macs.
 
 ## Interactive hardware interface
 
@@ -60,15 +60,15 @@ Output: `dist/HaviRadio-macOS-AppleSilicon.zip`. The script verifies arm64 archi
 ./scripts/build-windows.ps1
 ```
 
-Output: `dist/HaviRadio-Windows-x64.zip`. The project uses the static MSVC runtime. The script checks that the x64 VST3 binary exists before packaging it. PowerShell, MSVC, Windows SDK and Xcode were unavailable in the creation environment, so these scripts still require their first native run.
+Output: `dist/HaviRadio-Windows-x64.zip`. The project uses the static MSVC runtime. The script checks that the x64 VST3 binary exists before packaging it. Both platform scripts have now run successfully on native GitHub Actions runners.
 
 ## Build both through GitHub Actions
 
-Put the **contents** of this HaviRadio directory at the root of a GitHub repository, including `.github/workflows/build.yml`. The supplied workflow uses Windows and Mac runners to compile, run DSP tests, and upload separate ZIP artifacts. It runs on pushes to main or manually from Actions > Build Radio Box VST3 > Run workflow. No repository has been created or workflow run as part of this delivery. These build jobs are not ongoing scheduled automations.
+Put the **contents** of this HaviRadio directory at the root of a GitHub repository, including `.github/workflows/build.yml`. The supplied workflow uses Windows and Mac runners to compile, run DSP tests, and upload separate ZIP artifacts. It runs on pushes to main or manually from Actions > Build Radio Box VST3 > Run workflow. The project is hosted at https://github.com/lonewolfx3/Havi-radio and the workflow has run successfully. These build jobs are not ongoing scheduled automations.
 
 ## Generate installers after successful compilation
 
-The automated workflow now also packages a Windows `.exe` installer using NSIS and an Apple Silicon `.pkg` using Apple's pkgbuild. These packaging steps have not run on their native operating systems. They deliberately fail when the compiled VST3 is missing.
+The automated workflow now also packages a Windows `.exe` installer using NSIS and an Apple Silicon `.pkg` using Apple's pkgbuild. These packaging steps have run successfully on their native operating systems. They deliberately fail when the compiled VST3 is missing.
 
 For local packaging:
 
@@ -90,7 +90,7 @@ Open FL Studio's Options > Manage plugins, scan, and load Havi Radio in a vocal 
 
 ## Validation still required
 
-Completed: standalone C++ engine tests at five sample rates, all ten presets, switch combinations during preset changes, bandwidth extremes, finite output, channel isolation, silence and dry mix. Meter tests check peak capture/reset, attack and return to zero. Mac shell script syntax was checked. Native JUCE compilation, Windows script execution, visual inspection of the native UI, VST3 validation, and FL Studio listening/project-recall tests have not been completed.
+Completed: standalone C++ engine tests at five sample rates, all ten presets, switch combinations during preset changes, bandwidth extremes, finite output, channel isolation, silence and dry mix. Meter tests check peak capture/reset, attack and return to zero. Mac shell script syntax was checked. Native JUCE compilation, Windows script execution, and pluginval level 5 checks passed on both targets, including editor creation, audio processing, automation and state tests. Visual inspection and FL Studio listening/project-recall tests have not been completed.
 
 Before release, run pluginval or the VST3 validator; verify scanning, all controls and switches, automation, project save/reopen, bypass, mono/stereo, multiple instances, resized editor, sample-rate changes and offline rendering on both targets. Audition and level-match all stations using real vocals.
 
@@ -100,3 +100,4 @@ The distortion is not oversampled and may alias at high Drive settings. There is
 
 - JUCE CMake documentation: https://github.com/juce-framework/JUCE/blob/master/docs/CMake%20API.md
 - FL Studio plug-in installation: https://www.image-line.com/fl-studio-learning/fl-studio-online-manual/html/basics_externalplugins.htm
+
