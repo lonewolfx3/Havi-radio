@@ -13,7 +13,7 @@ class RadioBoxEditor final:public juce::AudioProcessorEditor,private juce::Timer
  juce::ComboBox station,theme;juce::TextButton previous{"<"},next{">"};std::array<RadioKnob,10> knobs;std::array<juce::Label,10> values;std::array<juce::ToggleButton,6> toggles;
  using SA=juce::AudioProcessorValueTreeState::SliderAttachment;using BA=juce::AudioProcessorValueTreeState::ButtonAttachment;std::array<std::unique_ptr<SA>,10> sliderAttachments;std::array<std::unique_ptr<BA>,3> toggleAttachments;std::unique_ptr<BA> dropoutAttachment,powerAttachment,lightAttachment;std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> themeAttachment;
  int themeIndex=0;float level=0;static constexpr std::array<const char*,10> knobIDs{"loRoll","midEq","hiRoll","bandwidth","tuning","filter","drive","tone","width","mix"};
- static constexpr std::array<juce::Rectangle<int>,10> knobBounds{{{126,199,89,89},{246,199,89,89},{369,199,89,89},{224,363,124,124},{626,525,282,282},{1103,194,96,96},{1288,194,96,96},{1098,378,106,106},{995,603,100,100},{1191,603,100,100}}};
+ inline static const std::array<juce::Rectangle<int>,10> knobBounds{{{126,199,89,89},{246,199,89,89},{369,199,89,89},{224,363,124,124},{626,525,282,282},{1103,194,96,96},{1288,194,96,96},{1098,378,106,106},{995,603,100,100},{1191,603,100,100}}};
  juce::Rectangle<int> scaled(juce::Rectangle<int> b)const{float s=float(getWidth())/1536;return b.toFloat().transformedBy(juce::AffineTransform::scale(s)).toNearestInt();}
  float raw(const char* id)const{return processor.state.getRawParameterValue(id)->load();}
  void timerCallback()override{refresh(1.f/60);}
