@@ -8,16 +8,16 @@ Unicode True
 !ifndef OUTPUT_FILE
   !error "Pass /DOUTPUT_FILE with the installer output path"
 !endif
-Name "Havi Radio / Radio Box"
+Name "RadioBox by UOC SOUND"
 OutFile "${OUTPUT_FILE}"
 RequestExecutionLevel admin
-InstallDir "$PROGRAMFILES64\Havi Radio"
+InstallDir "$PROGRAMFILES64\RadioBox"
 SetCompressor /SOLID lzma
-VIProductVersion "0.2.0.0"
-VIAddVersionKey "ProductName" "Havi Radio"
+VIProductVersion "0.3.0.0"
+VIAddVersionKey "ProductName" "RadioBox"
 VIAddVersionKey "FileDescription" "Radio Box VST3 Installer"
-VIAddVersionKey "FileVersion" "0.2.0"
-!define MUI_WELCOMEPAGE_TEXT "This installs Havi Radio for 64-bit Windows 10/11.$\r$\n$\r$\nClose FL Studio before continuing. After installation, scan for plugins in FL Studio's Plugin Manager."
+VIAddVersionKey "FileVersion" "0.3.0"
+!define MUI_WELCOMEPAGE_TEXT "This installs RadioBox for 64-bit Windows 10/11.$\r$\n$\r$\nClose FL Studio before continuing. After installation, scan for plugins in FL Studio's Plugin Manager."
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -35,21 +35,21 @@ Function .onInit
   ${EndIf}
   SetRegView 64
 FunctionEnd
-Section "Havi Radio VST3"
-  SetOutPath "$COMMONFILES64\VST3\Havi Radio.vst3"
+Section "RadioBox VST3"
+  SetOutPath "$COMMONFILES64\VST3\RadioBox.vst3"
   File /r "${PLUGIN_DIR}\*"
   SetOutPath "$INSTDIR"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\HaviRadio" "DisplayName" "Havi Radio"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\HaviRadio" "DisplayVersion" "0.2.0"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\HaviRadio" "UninstallString" '$"$INSTDIR\Uninstall.exe$"'
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\HaviRadio" "NoModify" 1
-  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\HaviRadio" "NoRepair" 1
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RadioBox" "DisplayName" "RadioBox"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RadioBox" "DisplayVersion" "0.3.0"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RadioBox" "UninstallString" '$"$INSTDIR\Uninstall.exe$"'
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RadioBox" "NoModify" 1
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RadioBox" "NoRepair" 1
 SectionEnd
 Section "Uninstall"
   SetRegView 64
-  RMDir /r "$COMMONFILES64\VST3\Havi Radio.vst3"
+  RMDir /r "$COMMONFILES64\VST3\RadioBox.vst3"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
-  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\HaviRadio"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\RadioBox"
 SectionEnd
