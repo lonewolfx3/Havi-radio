@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+legacy='/Library/Audio/Plug-Ins/VST3/Havi Radio.vst3'
+if [[ -d "$legacy" ]]; then
+  backup=$(mktemp -d '/Library/Audio/Plug-Ins/RadioBox-Previous-XXXXXXXX')
+  mv "$legacy" "$backup/Havi Radio.vst3"
+fi
+exit 0

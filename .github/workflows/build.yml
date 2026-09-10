@@ -1,4 +1,4 @@
-name: Build Radio Box VST3
+name: Build RadioBox VST3
 on:
   workflow_dispatch:
   push:
@@ -13,6 +13,11 @@ jobs:
       - name: Build and test Windows x64
         shell: pwsh
         run: ./scripts/build-windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RadioBox-UI-Windows
+          path: build-windows/ui-previews/*.png
+          if-no-files-found: error
       - name: Validate Windows VST3
         shell: pwsh
         run: |
@@ -20,7 +25,7 @@ jobs:
           Expand-Archive "$env:RUNNER_TEMP/pluginval.zip" "$env:RUNNER_TEMP/pluginval"
           $validator = Get-ChildItem "$env:RUNNER_TEMP/pluginval" -Recurse -Filter pluginval.exe | Select-Object -First 1
           if (-not $validator) { throw 'pluginval executable missing' }
-          & $validator.FullName --strictness-level 5 --validate 'build-windows/HaviRadio_artefacts/Release/VST3/Havi Radio.vst3' | Out-Host
+          & $validator.FullName --strictness-level 5 --validate 'build-windows/HaviRadio_artefacts/Release/VST3/RadioBox.vst3' | Out-Host
           if ($LASTEXITCODE -ne 0) { throw 'VST3 validation failed' }
       - name: Install NSIS
         shell: pwsh
@@ -32,10 +37,10 @@ jobs:
         run: ./scripts/package-windows.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: HaviRadio-Windows-x64
+          name: RadioBox-Windows-x64
           path: |
-            dist/HaviRadio-Windows-x64.zip
-            dist/HaviRadio-Windows-x64-Setup.exe
+            dist/RadioBox-Windows-x64.zip
+            dist/RadioBox-Windows-x64-Setup.exe
           if-no-files-found: error
   mac:
     runs-on: macos-14
@@ -43,19 +48,24 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build and test Apple Silicon
         run: bash scripts/build-mac.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RadioBox-UI-Mac
+          path: build-mac/ui-previews/*.png
+          if-no-files-found: error
       - name: Validate Apple Silicon VST3
         run: |
           curl -fL 'https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_macOS.zip' -o "$RUNNER_TEMP/pluginval.zip"
           ditto -x -k "$RUNNER_TEMP/pluginval.zip" "$RUNNER_TEMP/pluginval"
           validator=$(find "$RUNNER_TEMP/pluginval" -type f -path '*/Contents/MacOS/pluginval' -print -quit)
           test -n "$validator"
-          "$validator" --strictness-level 5 --validate 'build-mac/HaviRadio_artefacts/Release/VST3/Havi Radio.vst3'
+          "$validator" --strictness-level 5 --validate 'build-mac/HaviRadio_artefacts/Release/VST3/RadioBox.vst3'
       - name: Package Mac installer
         run: bash scripts/package-mac.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: HaviRadio-macOS-AppleSilicon
+          name: RadioBox-macOS-AppleSilicon
           path: |
-            dist/HaviRadio-macOS-AppleSilicon.zip
-            dist/HaviRadio-macOS-AppleSilicon.pkg
+            dist/RadioBox-macOS-AppleSilicon.zip
+            dist/RadioBox-macOS-AppleSilicon.pkg
           if-no-files-found: error
