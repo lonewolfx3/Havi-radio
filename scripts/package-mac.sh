@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 plugin='build-mac/HaviRadio_artefacts/Release/VST3/Havi Radio.vst3'
 [[ -f "$plugin/Contents/MacOS/Havi Radio" ]] || { echo 'No compiled Mac plug-in. Run scripts/build-mac.sh first.'; exit 1; }
-lipo -verify_arch arm64 "$plugin/Contents/MacOS/Havi Radio"
+lipo "$plugin/Contents/MacOS/Havi Radio" -verify_arch arm64
 codesign --verify --strict "$plugin"
 mkdir -p dist
 stage=$(mktemp -d)

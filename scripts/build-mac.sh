@@ -7,7 +7,7 @@ cmake -S . -B build-mac -G Xcode -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEP
 cmake --build build-mac --config Release --target HaviRadio_VST3 HaviRadioDSPTests --parallel 2
 ctest --test-dir build-mac -C Release --output-on-failure
 plugin='build-mac/HaviRadio_artefacts/Release/VST3/Havi Radio.vst3'
-lipo -verify_arch arm64 "$plugin/Contents/MacOS/Havi Radio"
+lipo "$plugin/Contents/MacOS/Havi Radio" -verify_arch arm64
 codesign --force --sign - "$plugin"
 codesign --verify --strict "$plugin"
 mkdir -p dist
