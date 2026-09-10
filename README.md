@@ -1,3 +1,5 @@
+> RadioBox 0.3 by UOC SOUND: see [updated features and installation notes](RADIOBOX-0.3.md). The notes below describe the earlier Havi Radio build.
+
 # Radio Box / Havi Radio v0.2
 
 Vocal radio-effect VST3 project using your supplied Radio Box artwork. The host plug-in name remains **Havi Radio** to preserve the original project identity.

@@ -231,7 +231,6 @@ public:
     // Replace the baked meter face so only the live needle remains visible.
     {
     juce::Graphics::ScopedSaveState meterSave(g);
-    if(colour.getSelectedItemIndex()==1) g.addTransform(juce::AffineTransform::translation(-26.f,0.f));
     g.setGradientFill(juce::ColourGradient(juce::Colour(0xffffd786),1150,390,juce::Colour(0xffc08e42),1150,485,false));
     g.fillRoundedRectangle(1090,389,124,92,28);
     const juce::Point<float> pivot(1151,470);
@@ -264,10 +263,6 @@ public:
     knobs[4].setBounds(scaled(1189,594,114,114));
     knobs[5].setBounds(scaled(669,545,205,205));
     for(int i=0;i<3;++i) switches[size_t(i)].setBounds(scaled(169+i*85,584,80,126));
-    if(colour.getSelectedItemIndex()==1) {
-      knobs[1].setBounds(scaled(1074,180,108,108));
-      knobs[3].setBounds(scaled(1275,391,108,108));
-    }
     previous.setBounds(scaled(386,8,42,32));
     station.setBounds(scaled(436,8,400,32));
     next.setBounds(scaled(844,8,42,32));
