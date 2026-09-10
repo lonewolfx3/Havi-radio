@@ -1,0 +1,45 @@
+name: Build Radio Box VST3
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test Windows x64
+        shell: pwsh
+        run: ./scripts/build-windows.ps1
+      - name: Install NSIS
+        shell: pwsh
+        run: |
+          choco install nsis --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw 'NSIS installation failed' }
+      - name: Package Windows installer
+        shell: pwsh
+        run: ./scripts/package-windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HaviRadio-Windows-x64
+          path: |
+            dist/HaviRadio-Windows-x64.zip
+            dist/HaviRadio-Windows-x64-Setup.exe
+          if-no-files-found: error
+  mac:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test Apple Silicon
+        run: bash scripts/build-mac.sh
+      - name: Package Mac installer
+        run: bash scripts/package-mac.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HaviRadio-macOS-AppleSilicon
+          path: |
+            dist/HaviRadio-macOS-AppleSilicon.zip
+            dist/HaviRadio-macOS-AppleSilicon.pkg
+          if-no-files-found: error
