@@ -81,18 +81,37 @@ public:
         return file.moveToTrash() ? juce::Result::ok() : juce::Result::fail("Could not move preset to trash.");
     }
     static constexpr std::array<int, 9> zooms{50,60,70,80,90,100,110,125,150};
-    static int zoom() {
+    static std::unique_ptr<juce::XmlElement> preferences() {
         auto xml = juce::XmlDocument::parse(root().getChildFile("Preferences.xml"));
+        if (!xml || !xml->hasTagName("RadioBoxPreferences"))
+            xml = std::make_unique<juce::XmlElement>("RadioBoxPreferences");
+        return xml;
+    }
+    static juce::Result writePreferences(std::unique_ptr<juce::XmlElement> xml) {
+        auto ready = initialise();
+        if (ready.failed()) return ready;
+        juce::TemporaryFile tmp(root().getChildFile("Preferences.xml"));
+        return xml->writeTo(tmp.getFile()) && tmp.overwriteTargetFileWithTemporary()
+            ? juce::Result::ok() : juce::Result::fail("Could not save RadioBox UI preferences.");
+    }
+    static int zoom() {
+        auto xml = preferences();
         const int value = xml ? xml->getIntAttribute("zoom", 100) : 100;
         return std::find(zooms.begin(), zooms.end(), value) != zooms.end() ? value : 100;
     }
     static juce::Result saveZoom(int value) {
         if (std::find(zooms.begin(), zooms.end(), value) == zooms.end()) return juce::Result::fail("Unsupported zoom.");
-        auto ready = initialise();
-        if (ready.failed()) return ready;
-        juce::XmlElement xml("RadioBoxPreferences"); xml.setAttribute("zoom", value);
-        juce::TemporaryFile tmp(root().getChildFile("Preferences.xml"));
-        return xml.writeTo(tmp.getFile()) && tmp.overwriteTargetFileWithTemporary()
-            ? juce::Result::ok() : juce::Result::fail("Could not save UI size preference.");
+        auto xml = preferences();
+        xml->setAttribute("zoom", value);
+        return writePreferences(std::move(xml));
+    }
+    static int theme() {
+        return juce::jlimit(0, 2, preferences()->getIntAttribute("theme", 0));
+    }
+    static juce::Result saveTheme(int value) {
+        if (value < 0 || value >= 3) return juce::Result::fail("Unsupported UI color.");
+        auto xml = preferences();
+        xml->setAttribute("theme", value);
+        return writePreferences(std::move(xml));
     }
 };

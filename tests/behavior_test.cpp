@@ -15,6 +15,7 @@ static juce::Slider& slider(RadioBoxEditor& editor, const char* id) {
 int main() {
     juce::ScopedJuceInitialiser_GUI init;
     const int previousZoom = UserPresets::zoom();
+    const int previousTheme = UserPresets::theme();
     UserPresets::saveZoom(100);
     RadioBoxProcessor processor;
     RadioBoxEditor editor(processor);
@@ -25,11 +26,10 @@ int main() {
         processor.selectPreset(preset);
         editor.refresh(0.0f);
         for (size_t i = 0; i < havi::controlIDs.size(); ++i) {
-            const float expected = havi::factoryControls[static_cast<size_t>(preset)][14] > 0.5f && i >= 11 && i <= 13
-                ? 0.0f : havi::factoryControls[static_cast<size_t>(preset)][i];
+            const float expected = havi::factoryControls[static_cast<size_t>(preset)][i];
             const float actual = processor.state.getRawParameterValue(havi::controlIDs[i])->load();
             assert(std::abs(actual - expected) < 0.005f);
-            if (i < 10) assert(std::abs(slider(editor, havi::controlIDs[i]).getValue() - actual) < 0.005);
+            if (i < 10 && i != 4) assert(std::abs(slider(editor, havi::controlIDs[i]).getValue() - actual) < 0.005);
         }
     }
 
@@ -37,6 +37,10 @@ int main() {
     assert(menu != nullptr);
     menu->setSelectedId(3, juce::sendNotificationSync);
     assert(processor.getCurrentProgram() == 2);
+    assert(editor.browsePresetForTest(1));
+    assert(processor.getCurrentProgram() == 3 && editor.selectedPresetIndexForTest() == 3);
+    assert(editor.browsePresetForTest(-1));
+    assert(processor.getCurrentProgram() == 2 && editor.selectedPresetIndexForTest() == 2);
 
     for (int i = 0; i < 90; ++i) editor.refresh(1.0f / 60.0f);
     auto& drive = static_cast<RadioKnob&>(slider(editor, "drive"));
@@ -50,20 +54,26 @@ int main() {
     slider(editor, "drive").setValue(73.4, juce::sendNotificationSync);
     assert(std::abs(processor.controls()[6] - 73.4f) < 0.01f && processor.modified());
 
-    processor.selectBand(2);
-    assert(processor.controls()[11] == 0 && processor.controls()[12] == 0 && processor.controls()[13] == 1);
+    for (int mask = 0; mask < 8; ++mask) {
+        for (int band = 0; band < 3; ++band) processor.setBandEnabled(band, (mask & (1 << band)) != 0);
+        const auto controls = processor.controls();
+        for (int band = 0; band < 3; ++band)
+            assert((controls[static_cast<size_t>(11 + band)] > 0.5f) == ((mask & (1 << band)) != 0));
+    }
     processor.setDropout(true);
-    assert(processor.controls()[11] == 0 && processor.controls()[12] == 0 && processor.controls()[13] == 0);
+    assert(processor.controls()[11] == 1 && processor.controls()[12] == 1 && processor.controls()[13] == 1);
     processor.setDropout(false);
-    assert(processor.controls()[11] == 0 && processor.controls()[12] == 0 && processor.controls()[13] == 1);
-    processor.selectBand(0);
-    assert(processor.controls()[11] == 1 && processor.controls()[12] == 0 && processor.controls()[13] == 0);
+    assert(processor.controls()[11] == 1 && processor.controls()[12] == 1 && processor.controls()[13] == 1);
 
     const auto unique = juce::String("RadioBox-CI-") + juce::String(juce::Time::currentTimeMillis());
     auto result = UserPresets::save(unique, processor.state.copyState());
     assert(result.wasOk());
     auto presetFile = UserPresets::users().getChildFile(unique + ".radiobox");
     assert(presetFile.existsAsFile());
+    editor.reloadPresetsForTest();
+    menu->setSelectedId(10, juce::sendNotificationSync);
+    assert(editor.browsePresetForTest(1));
+    assert(editor.selectedPresetIndexForTest() == 10);
     slider(editor, "drive").setValue(11.0, juce::sendNotificationSync);
     juce::ValueTree restored;
     assert(UserPresets::load(presetFile, restored).wasOk());
@@ -113,5 +123,6 @@ int main() {
     }
 
     UserPresets::saveZoom(previousZoom);
-    std::cout << "PASS: layered themes, preset CRUD, zoom, live controls, dropout restore and metering.\n";
+    UserPresets::saveTheme(previousTheme);
+    std::cout << "PASS: exact state artwork, independent bands, tuning preset browser, theme persistence, preset CRUD, zoom and metering.\n";
 }

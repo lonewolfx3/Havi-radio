@@ -11,6 +11,11 @@ struct RadioThemeAssets {
     juce::Image signal, overload, amber, bypass, headerPower, calibration;
 };
 
+struct RadioStateAssets {
+    juce::Image amOff, amOn, fmOff, fmOn, swOff, swOn;
+    juce::Image powerOff, powerOn, dropoutOff, dropoutOn;
+};
+
 inline juce::Image radioResource(const juce::String& name) {
     int size = 0;
     if (auto* data = BinaryData::getNamedResource(name.toRawUTF8(), size))
@@ -28,6 +33,14 @@ inline RadioThemeAssets loadRadioTheme(const juce::String& prefix) {
              image("am"), image("fm"), image("sw"), image("power"), image("dropout"),
              image("signal"), image("overload"), image("amber"), image("bypass"),
              image("headerpower"), image("calibration") };
+}
+
+inline RadioStateAssets loadRadioStateAssets() {
+    return { radioResource("state_am_off_png"), radioResource("state_am_on_png"),
+             radioResource("state_fm_off_png"), radioResource("state_fm_on_png"),
+             radioResource("state_sw_off_png"), radioResource("state_sw_on_png"),
+             radioResource("state_power_off_png"), radioResource("state_power_on_png"),
+             radioResource("state_dropout_off_png"), radioResource("state_dropout_on_png") };
 }
 
 class RadioKnob final : public juce::Slider {
@@ -71,6 +84,65 @@ public:
     }
 };
 
+class PresetTuningWheel final : public juce::Component, public juce::SettableTooltipClient, private juce::Timer {
+    juce::Image artwork;
+    juce::Rectangle<float> artworkBounds;
+    float angle = 0.0f, targetAngle = 0.0f, dragAccumulator = 0.0f, wheelAccumulator = 0.0f;
+    int lastDragY = 0;
+    static constexpr float detentAngle = juce::MathConstants<float>::pi / 10.0f;
+
+    void requestStep(int direction) {
+        if (direction != 0 && onStep) onStep(direction);
+    }
+
+    void timerCallback() override {
+        angle += (targetAngle - angle) * 0.28f;
+        if (std::abs(targetAngle - angle) < 0.0005f) angle = targetAngle;
+        repaint();
+    }
+
+public:
+    std::function<bool(int)> onStep;
+
+    PresetTuningWheel() { setMouseCursor(juce::MouseCursor::UpDownResizeCursor); startTimerHz(60); }
+    ~PresetTuningWheel() override { stopTimer(); }
+    void setArtwork(juce::Image image) { artwork = std::move(image); repaint(); }
+    void setArtworkBounds(juce::Rectangle<float> bounds) { artworkBounds = bounds; repaint(); }
+    void setStationIndex(int index, bool immediate = false) {
+        targetAngle = juce::jmax(0, index) * detentAngle;
+        if (immediate) angle = targetAngle;
+    }
+    void step(int direction) { requestStep(direction < 0 ? -1 : 1); }
+
+    void paint(juce::Graphics& g) override {
+        if (!artwork.isValid()) return;
+        juce::Graphics::ScopedSaveState save(g);
+        const auto centre = artworkBounds.getCentre();
+        g.addTransform(juce::AffineTransform::rotation(angle, centre.x, centre.y));
+        g.drawImage(artwork, artworkBounds);
+    }
+    void mouseDown(const juce::MouseEvent& event) override {
+        lastDragY = event.y; dragAccumulator = 0.0f;
+    }
+    void mouseDrag(const juce::MouseEvent& event) override {
+        dragAccumulator += static_cast<float>(lastDragY - event.y);
+        lastDragY = event.y;
+        const float threshold = juce::jmax(12.0f, getHeight() * 0.065f);
+        while (std::abs(dragAccumulator) >= threshold) {
+            const int direction = dragAccumulator > 0.0f ? 1 : -1;
+            requestStep(direction);
+            dragAccumulator -= threshold * static_cast<float>(direction);
+        }
+    }
+    void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails& wheel) override {
+        wheelAccumulator += wheel.deltaY;
+        if (std::abs(wheelAccumulator) >= 0.12f) {
+            requestStep(wheelAccumulator > 0.0f ? 1 : -1);
+            wheelAccumulator = 0.0f;
+        }
+    }
+};
+
 class RadioBoxEditor final : public juce::AudioProcessorEditor, private juce::Timer {
     static constexpr int designWidth = 1536;
     static constexpr int designHeight = 857;
@@ -82,6 +154,7 @@ class RadioBoxEditor final : public juce::AudioProcessorEditor, private juce::Ti
     RadioBoxProcessor& processor;
     RadioLook look;
     std::array<RadioThemeAssets, 3> themes { loadRadioTheme("olive"), loadRadioTheme("burgundy"), loadRadioTheme("blue") };
+    RadioStateAssets stateAssets { loadRadioStateAssets() };
     int themeIndex = -1;
     int zoomPercent = 100;
     float level = 0.0f;
@@ -92,14 +165,15 @@ class RadioBoxEditor final : public juce::AudioProcessorEditor, private juce::Ti
     juce::ComboBox station, zoom, theme;
     juce::TextButton savePreset { "S" }, openFolder { "DIR" }, reload { "R" };
     std::array<RadioKnob, 10> knobs;
+    PresetTuningWheel tuningWheel;
     std::array<juce::ToggleButton, 6> toggles;
     juce::TooltipWindow tooltips { this, 350 };
 
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
     std::array<std::unique_ptr<SliderAttachment>, 10> sliderAttachments;
+    std::array<std::unique_ptr<ButtonAttachment>, 3> bandAttachments;
     std::unique_ptr<ButtonAttachment> dropoutAttachment, powerAttachment, lightAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> themeAttachment;
 
     inline static constexpr std::array<const char*, 10> knobIDs {
         "loRoll", "midEq", "hiRoll", "bandwidth", "tuning", "filter", "drive", "tone", "width", "mix"
@@ -235,7 +309,28 @@ class RadioBoxEditor final : public juce::AudioProcessorEditor, private juce::Ti
         } else if (id == 9002) {
             deleteCurrentPreset();
         }
+        syncTuningWheel(false);
         refresh(0.0f);
+    }
+
+    int selectedStationIndex() const {
+        const int id = station.getSelectedId();
+        if (id >= 1 && id <= 10) return id - 1;
+        if (id >= 1000 && id < 1000 + userPresetFiles.size()) return 10 + id - 1000;
+        return processor.getCurrentProgram();
+    }
+
+    void syncTuningWheel(bool immediate) {
+        tuningWheel.setStationIndex(selectedStationIndex(), immediate);
+    }
+
+    bool stepPreset(int direction) {
+        const int count = 10 + userPresetFiles.size();
+        const int current = selectedStationIndex();
+        const int target = juce::jlimit(0, count - 1, current + (direction < 0 ? -1 : 1));
+        if (target == current) return false;
+        station.setSelectedId(target < 10 ? target + 1 : 1000 + target - 10, juce::sendNotificationSync);
+        return true;
     }
 
     void applyTheme(int index) {
@@ -246,6 +341,9 @@ class RadioBoxEditor final : public juce::AudioProcessorEditor, private juce::Ti
             assets.filter, assets.drive, assets.tone, assets.width, assets.mix
         };
         for (size_t i = 0; i < knobs.size(); ++i) knobs[i].artwork = knobImages[i];
+        tuningWheel.setArtwork(assets.tuning);
+        const auto result = UserPresets::saveTheme(themeIndex);
+        if (result.failed()) juce::Logger::writeToLog(result.getErrorMessage());
         repaint();
     }
 
@@ -269,8 +367,21 @@ public:
 
         for (int z : UserPresets::zooms) zoom.addItem(juce::String(z) + "%", z);
         zoom.onChange = [this] { setZoomPercent(zoom.getSelectedId()); };
-        theme.addItemList({ "Olive Green", "Burgundy", "Blue" }, 1);
-        themeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.state, "theme", theme);
+        theme.addItemList({ "Vintage Green", "Burgundy", "Ice Blue" }, 1);
+        const int storedTheme = UserPresets::theme();
+        if (auto* parameter = p.state.getParameter("theme"))
+            parameter->setValueNotifyingHost(parameter->convertTo0to1(static_cast<float>(storedTheme)));
+        theme.setSelectedId(storedTheme + 1, juce::dontSendNotification);
+        theme.onChange = [this] {
+            const int index = theme.getSelectedId() - 1;
+            if (index < 0 || index >= 3) return;
+            if (auto* parameter = processor.state.getParameter("theme")) {
+                parameter->beginChangeGesture();
+                parameter->setValueNotifyingHost(parameter->convertTo0to1(static_cast<float>(index)));
+                parameter->endChangeGesture();
+            }
+            applyTheme(index);
+        };
 
         styleToolbarButton(savePreset);
         styleToolbarButton(openFolder);
@@ -290,13 +401,14 @@ public:
         reload.onClick = [this] { rebuildPresetMenu(activeUserPreset); };
 
         for (size_t i = 0; i < knobs.size(); ++i) {
+            if (i == 4) continue;
             auto& knob = knobs[i];
             knob.setComponentID(juce::String("knob.") + knobIDs[i]);
             knob.setSliderStyle(juce::Slider::RotaryVerticalDrag);
             knob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
             knob.setRotaryParameters(rotaryStart, rotaryEnd, true);
             knob.setPopupDisplayEnabled(true, true, this);
-            knob.setMouseDragSensitivity(i == 4 ? 360 : 220);
+            knob.setMouseDragSensitivity(220);
             knob.setTooltip(processor.state.getParameter(knobIDs[i])->getName(80));
             addAndMakeVisible(knob);
             sliderAttachments[i] = std::make_unique<SliderAttachment>(p.state, knobIDs[i], knob);
@@ -305,13 +417,19 @@ public:
             knob.sourceAngle = rotaryStart + normalized * (rotaryEnd - rotaryStart);
         }
 
+        tuningWheel.setComponentID("preset.tuningWheel");
+        tuningWheel.setTooltip("Drag or scroll: clockwise for next preset, counterclockwise for previous preset");
+        tuningWheel.onStep = [this](int direction) { return stepPreset(direction); };
+        addAndMakeVisible(tuningWheel);
+
         const std::array<const char*, 3> bandIDs { "am", "fm", "sw" };
         for (int i = 0; i < 3; ++i) {
             auto& toggle = toggles[static_cast<size_t>(i)];
             toggle.setComponentID(juce::String("switch.") + bandIDs[static_cast<size_t>(i)]);
             toggle.setTooltip(juce::String(bandIDs[static_cast<size_t>(i)]).toUpperCase() + " radio band");
-            toggle.onClick = [this, i] { if (raw("dropout") < 0.5f) processor.selectBand(i); };
+            toggle.setClickingTogglesState(true);
             addAndMakeVisible(toggle);
+            bandAttachments[static_cast<size_t>(i)] = std::make_unique<ButtonAttachment>(p.state, bandIDs[static_cast<size_t>(i)], toggle);
         }
         toggles[3].setComponentID("switch.dropout");
         toggles[4].setComponentID("switch.power");
@@ -325,12 +443,13 @@ public:
         lightAttachment = std::make_unique<ButtonAttachment>(p.state, "vuLight", toggles[5]);
 
         rebuildPresetMenu({});
+        syncTuningWheel(true);
         zoomPercent = UserPresets::zoom();
         zoom.setSelectedId(zoomPercent, juce::dontSendNotification);
         setResizable(false, false);
         setSize(juce::roundToInt(normalWidth * zoomPercent / 100.0f),
                 juce::roundToInt(normalHeight * zoomPercent / 100.0f));
-        applyTheme(juce::jlimit(0, 2, static_cast<int>(raw("theme"))));
+        applyTheme(storedTheme);
         refresh(0.0f);
         startTimerHz(60);
     }
@@ -351,6 +470,9 @@ public:
     }
 
     int getZoomPercent() const { return zoomPercent; }
+    void reloadPresetsForTest() { rebuildPresetMenu(activeUserPreset); }
+    bool browsePresetForTest(int direction) { return stepPreset(direction); }
+    int selectedPresetIndexForTest() const { return selectedStationIndex(); }
 
     void refresh(float seconds) {
         const int requestedTheme = juce::jlimit(0, 2, static_cast<int>(std::lround(raw("theme"))));
@@ -359,18 +481,18 @@ public:
         if (!activeUserPreset.existsAsFile() && !rebuildingMenu)
             station.setSelectedId(processor.getCurrentProgram() + 1, juce::dontSendNotification);
         for (size_t i = 0; i < knobs.size(); ++i) {
+            if (i == 4) continue;
             const float target = processor.state.getParameter(knobIDs[i])->convertTo0to1(raw(knobIDs[i]));
             knobs[i].setValue(raw(knobIDs[i]), juce::dontSendNotification);
             knobs[i].visualPosition = knobs[i].isMouseButtonDown()
                 ? target : havi::visualStep(knobs[i].visualPosition, target, seconds);
             knobs[i].repaint();
         }
-        const bool dropout = raw("dropout") > 0.5f;
         for (int i = 0; i < 3; ++i) {
-            toggles[static_cast<size_t>(i)].setEnabled(!dropout);
             toggles[static_cast<size_t>(i)].setToggleState(raw(havi::controlIDs[static_cast<size_t>(11 + i)]) > 0.5f,
                                                             juce::dontSendNotification);
         }
+        syncTuningWheel(false);
         if (seconds > 0.0f) level = havi::Meter::animate(level, processor.meter.take(), seconds);
         repaint();
     }
@@ -387,23 +509,24 @@ public:
         drawImage(g, assets.calibration, { 922.5f, 371.25f, 36.0f, 37.5f });
 
         const bool dropout = raw("dropout") > 0.5f;
-        const std::array<juce::Image, 3> bandImages { assets.am, assets.fm, assets.sw };
+        const std::array<juce::Image, 3> bandOff { stateAssets.amOff, stateAssets.fmOff, stateAssets.swOff };
+        const std::array<juce::Image, 3> bandOn { stateAssets.amOn, stateAssets.fmOn, stateAssets.swOn };
         const std::array<juce::Rectangle<float>, 3> bandBounds {{
-            { 162.0f, 599.25f, 79.5f, 118.5f }, { 252.0f, 599.25f, 80.25f, 118.5f },
-            { 343.5f, 599.25f, 80.25f, 118.5f }
+            { 152.6f, 598.9f, 77.4f, 116.3f }, { 246.1f, 598.9f, 77.4f, 116.3f },
+            { 337.9f, 598.9f, 77.4f, 116.3f }
         }};
         for (int i = 0; i < 3; ++i) {
-            const bool active = !dropout && raw(havi::controlIDs[static_cast<size_t>(11 + i)]) > 0.5f;
-            drawImage(g, bandImages[static_cast<size_t>(i)], bandBounds[static_cast<size_t>(i)], active ? 1.0f : 0.48f);
+            const bool active = raw(havi::controlIDs[static_cast<size_t>(11 + i)]) > 0.5f;
+            drawImage(g, active ? bandOn[static_cast<size_t>(i)] : bandOff[static_cast<size_t>(i)],
+                      bandBounds[static_cast<size_t>(i)]);
         }
 
         const bool powerOn = raw("power") > 0.5f;
-        const auto powerBounds = juce::Rectangle<float>(1323.0f, 429.0f, 65.25f, 54.75f);
-        drawRotated(g, assets.power, powerBounds, powerOn ? -juce::MathConstants<float>::halfPi : 0.0f,
-                    powerBounds.getCentre());
-        const auto dropoutBounds = juce::Rectangle<float>(504.0f, 648.0f, 37.5f, 63.75f);
-        drawRotated(g, assets.dropout, dropoutBounds, dropout ? juce::MathConstants<float>::pi : 0.0f,
-                    dropoutBounds.getCentre());
+        drawImage(g, powerOn ? stateAssets.powerOn : stateAssets.powerOff,
+                  { 1292.6f, 396.0f, 95.3f, 96.2f });
+        drawImage(g, dropout ? stateAssets.dropoutOn : stateAssets.dropoutOff,
+                  dropout ? juce::Rectangle<float>(499.9f, 608.0f, 30.6f, 58.1f)
+                          : juce::Rectangle<float>(500.3f, 648.4f, 30.6f, 58.1f));
         drawImage(g, assets.headerPower, { 1332.75f, 3.75f, 36.0f, 36.0f }, powerOn ? 1.0f : 0.45f);
 
         const bool meterLight = raw("vuLight") > 0.5f;
@@ -435,6 +558,7 @@ public:
         theme.setBounds(scaled({ 1012.0f, 5.0f, 165.0f, 34.0f }));
 
         for (size_t i = 0; i < knobs.size(); ++i) {
+            if (i == 4) continue;
             const auto art = scaled(knobArtBounds[i]);
             const int padding = juce::jmax(8, juce::roundToInt(22.0f * scale()));
             const auto hit = art.expanded(padding);
@@ -442,11 +566,17 @@ public:
             knobs[i].artworkBounds = art.toFloat().translated(static_cast<float>(-hit.getX()),
                                                                static_cast<float>(-hit.getY()));
         }
+        const auto tuningArt = scaled(knobArtBounds[4]);
+        const int tuningPadding = juce::jmax(10, juce::roundToInt(28.0f * scale()));
+        const auto tuningHit = tuningArt.expanded(tuningPadding);
+        tuningWheel.setBounds(tuningHit);
+        tuningWheel.setArtworkBounds(tuningArt.toFloat().translated(static_cast<float>(-tuningHit.getX()),
+                                                                     static_cast<float>(-tuningHit.getY())));
         toggles[0].setBounds(scaled({ 151.0f, 581.0f, 102.0f, 150.0f }));
         toggles[1].setBounds(scaled({ 241.0f, 581.0f, 102.0f, 150.0f }));
         toggles[2].setBounds(scaled({ 332.0f, 581.0f, 102.0f, 150.0f }));
-        toggles[3].setBounds(scaled({ 480.0f, 594.0f, 82.0f, 145.0f }));
-        toggles[4].setBounds(scaled({ 1302.0f, 374.0f, 105.0f, 145.0f }));
+        toggles[3].setBounds(scaled({ 480.0f, 590.0f, 82.0f, 145.0f }));
+        toggles[4].setBounds(scaled({ 1285.0f, 385.0f, 120.0f, 120.0f }));
         toggles[5].setBounds(scaled({ 912.0f, 357.0f, 58.0f, 60.0f }));
     }
 };

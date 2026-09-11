@@ -22,7 +22,7 @@ with open(sys.argv[1], 'wb') as f:
     plistlib.dump(components, f)
 PYPLIST
 pkgbuild --root "$stage/root" --component-plist "$stage/components.plist" \
-  --scripts installers/mac-scripts --identifier com.uocsound.radiobox.installer --version 0.4.0 \
+  --scripts installers/mac-scripts --identifier com.uocsound.radiobox.installer --version 0.5.0 \
   --install-location /Library/Audio/Plug-Ins/VST3 \
   dist/RadioBox-macOS-AppleSilicon.pkg
 pkgutil --payload-files dist/RadioBox-macOS-AppleSilicon.pkg
