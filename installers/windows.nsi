@@ -13,10 +13,10 @@ OutFile "${OUTPUT_FILE}"
 RequestExecutionLevel admin
 InstallDir "$PROGRAMFILES64\RadioBox"
 SetCompressor /SOLID lzma
-VIProductVersion "0.4.0.0"
+VIProductVersion "0.5.0.0"
 VIAddVersionKey "ProductName" "RadioBox"
 VIAddVersionKey "FileDescription" "Radio Box VST3 Installer"
-VIAddVersionKey "FileVersion" "0.4.0"
+VIAddVersionKey "FileVersion" "0.5.0"
 !define MUI_WELCOMEPAGE_TEXT "This installs RadioBox for 64-bit Windows 10/11.$\r$\n$\r$\nClose FL Studio before continuing. After installation, scan for plugins in FL Studio's Plugin Manager."
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_INSTFILES
@@ -45,7 +45,7 @@ Section "RadioBox VST3"
   legacy_done:
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\HaviRadio" "DisplayName" "RadioBox"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\HaviRadio" "DisplayVersion" "0.4.0"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\HaviRadio" "DisplayVersion" "0.5.0"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\HaviRadio" "UninstallString" '$"$INSTDIR\Uninstall.exe$"'
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\HaviRadio" "NoModify" 1
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\HaviRadio" "NoRepair" 1

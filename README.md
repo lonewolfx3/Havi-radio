@@ -9,9 +9,11 @@ RadioBox is a vocal radio-effect VST3 for FL Studio and other VST3 hosts.
 
 ## Interface and DSP
 
-The 10 factory presets load real saved values for Lo Roll-Off, Mid EQ, Hi Roll-Off, Bandwidth, Tuning, Filter, Drive, Tone, Stereo Width, and Dry/Wet. Every control supports host automation and manual adjustment. AM, FM, and SW are exclusive band modes. Signal Dropout adds unstable transmission artifacts. Power off bypasses the processing.
+The 10 factory presets load real saved values for Lo Roll-Off, Mid EQ, Hi Roll-Off, Bandwidth, Tuning, Filter, Drive, Tone, Stereo Width, and Dry/Wet. Every control supports host automation and manual adjustment. AM, FM, and SW are independent, so any combination—including all three or all off—is supported. Signal Dropout adds unstable transmission artifacts only while enabled; switching it off completely removes its noise and gain modulation. The supplied Power Button artwork follows the real processing/bypass state.
 
-The VU needle follows the input peak with fast attack and analog-style release. SIGNAL and OVERLOAD LEDs follow the input, and the amber lamp toggles the VU backlight. The interface uses the original supplied layered artwork in Olive Green, Burgundy, and Blue.
+The large Tuning Wheel browses one station at a time through factory and user presets using click-drag, mouse wheel, or trackpad input. It stays synchronized with the toolbar preset browser and loads the complete saved state immediately.
+
+The VU needle follows the input peak with fast attack and analog-style release. SIGNAL and OVERLOAD LEDs follow the input, and the amber lamp toggles the VU backlight. The interface uses the original supplied layered artwork in Vintage Green, Burgundy, and Ice Blue. UI color is appearance-only and its last selection is remembered globally.
 
 The top toolbar provides the preset browser, Save, preset folder, Reload, UI Size, and UI Color controls. User presets capture the complete parameter state and support save, load, rename, and delete. They are stored outside the plug-in bundle in **Radio Box Presets/User Presets** under `%APPDATA%` on Windows or `~/Library/Application Support` on macOS. Factory presets remain built into the plug-in and are represented by the protected **Factory Presets** directory.
 
