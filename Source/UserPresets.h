@@ -6,8 +6,11 @@
 class UserPresets {
 public:
     static juce::File root() {
-        return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-            .getChildFile("Radio Box Presets");
+        auto location = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory);
+       #if JUCE_MAC
+        location = location.getChildFile("Application Support");
+       #endif
+        return location.getChildFile("Radio Box Presets");
     }
     static juce::File users() { return root().getChildFile("User Presets"); }
     static juce::File factories() { return root().getChildFile("Factory Presets"); }

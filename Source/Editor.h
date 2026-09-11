@@ -40,6 +40,14 @@ public:
 
 class RadioLook final : public juce::LookAndFeel_V4 {
 public:
+    juce::Font getComboBoxFont(juce::ComboBox& box) override {
+        return juce::Font(juce::FontOptions(juce::jmax(6.0f, box.getHeight() * 0.42f)));
+    }
+
+    juce::Font getTextButtonFont(juce::TextButton& button, int) override {
+        return juce::Font(juce::FontOptions(juce::jmax(6.0f, button.getHeight() * 0.38f)));
+    }
+
     void drawRotarySlider(juce::Graphics& g, int, int, int, int, float, float start, float end,
                           juce::Slider& slider) override {
         auto& knob = static_cast<RadioKnob&>(slider);
@@ -82,7 +90,7 @@ class RadioBoxEditor final : public juce::AudioProcessorEditor, private juce::Ti
     bool rebuildingMenu = false;
 
     juce::ComboBox station, zoom, theme;
-    juce::TextButton savePreset { "SAVE" }, openFolder { "FOLDER" }, reload { "R" };
+    juce::TextButton savePreset { "S" }, openFolder { "DIR" }, reload { "R" };
     std::array<RadioKnob, 10> knobs;
     std::array<juce::ToggleButton, 6> toggles;
     juce::TooltipWindow tooltips { this, 350 };
@@ -184,7 +192,7 @@ class RadioBoxEditor final : public juce::AudioProcessorEditor, private juce::Ti
                 if (result != 1 || safe == nullptr) return;
                 const auto removed = UserPresets::remove(file);
                 if (removed.failed()) safe->showError(removed.getErrorMessage());
-                else { safe->activeUserPreset = {}; safe->rebuildPresetMenu({}); }
+                else { safe->activeUserPreset = juce::File(); safe->rebuildPresetMenu(juce::File()); }
             }));
     }
 
@@ -213,7 +221,7 @@ class RadioBoxEditor final : public juce::AudioProcessorEditor, private juce::Ti
         if (rebuildingMenu) return;
         const int id = station.getSelectedId();
         if (id >= 1 && id <= 10) {
-            activeUserPreset = {};
+            activeUserPreset = juce::File();
             processor.selectPreset(id - 1);
         } else if (id >= 1000 && id < 1000 + userPresetFiles.size()) {
             juce::ValueTree loaded;
@@ -391,7 +399,7 @@ public:
 
         const bool powerOn = raw("power") > 0.5f;
         const auto powerBounds = juce::Rectangle<float>(1323.0f, 429.0f, 65.25f, 54.75f);
-        drawRotated(g, assets.power, powerBounds, powerOn ? juce::MathConstants<float>::pi : 0.0f,
+        drawRotated(g, assets.power, powerBounds, powerOn ? -juce::MathConstants<float>::halfPi : 0.0f,
                     powerBounds.getCentre());
         const auto dropoutBounds = juce::Rectangle<float>(504.0f, 648.0f, 37.5f, 63.75f);
         drawRotated(g, assets.dropout, dropoutBounds, dropout ? juce::MathConstants<float>::pi : 0.0f,
@@ -419,11 +427,11 @@ public:
     }
 
     void resized() override {
-        station.setBounds(scaled({ 342.0f, 5.0f, 140.0f, 34.0f }));
-        savePreset.setBounds(scaled({ 486.0f, 5.0f, 42.0f, 34.0f }));
-        openFolder.setBounds(scaled({ 532.0f, 5.0f, 52.0f, 34.0f }));
-        reload.setBounds(scaled({ 588.0f, 5.0f, 30.0f, 34.0f }));
-        zoom.setBounds(scaled({ 622.0f, 5.0f, 55.0f, 34.0f }));
+        station.setBounds(scaled({ 342.0f, 5.0f, 160.0f, 34.0f }));
+        savePreset.setBounds(scaled({ 506.0f, 5.0f, 25.0f, 34.0f }));
+        openFolder.setBounds(scaled({ 535.0f, 5.0f, 36.0f, 34.0f }));
+        reload.setBounds(scaled({ 575.0f, 5.0f, 25.0f, 34.0f }));
+        zoom.setBounds(scaled({ 604.0f, 5.0f, 73.0f, 34.0f }));
         theme.setBounds(scaled({ 1012.0f, 5.0f, 165.0f, 34.0f }));
 
         for (size_t i = 0; i < knobs.size(); ++i) {

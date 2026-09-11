@@ -1,5 +1,4 @@
 name: Build RadioBox VST3
-# Version 0.4.0 validates the layered artwork editor and installers.
 on:
   workflow_dispatch:
   push:
