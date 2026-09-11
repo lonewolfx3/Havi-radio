@@ -17,6 +17,13 @@ inline constexpr std::array<Controls,10> factoryControls{{
  {{620,-3.5f,2600,30,-18,34,56,.22f,18,100,-1.f,1,0,0,0,1}},
  {{520,-4.f,2100,20,-68,26,88,-.42f,28,86,-3.5f,1,0,0,1,1}}
 }};
-inline bool matchesFactory(const Controls& c,int index){const auto& e=factoryControls[size_t(std::clamp(index,0,9))];for(size_t i=0;i<c.size();++i)if(std::abs(c[i]-e[i])>.005f)return false;return true;}
+inline bool matchesFactory(const Controls& c,int index){
+ const auto& e=factoryControls[size_t(std::clamp(index,0,9))];
+ for(size_t i=0;i<c.size();++i){
+  const float expected=(e[14]>.5f&&i>=11&&i<=13)?0.f:e[i];
+  if(std::abs(c[i]-expected)>.005f)return false;
+ }
+ return true;
+}
 inline float visualStep(float current,float target,float elapsed){const auto next=current+(std::clamp(target,0.f,1.f)-current)*(1-std::exp(-std::max(elapsed,0.f)/.055f));return std::abs(next-target)<.0001f?target:next;}
 }

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 if(APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS")
 endif()
-project(HaviRadio VERSION 0.3.0 LANGUAGES C CXX)
+project(HaviRadio VERSION 0.4.0 LANGUAGES C CXX)
 if(MSVC)
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
@@ -18,9 +18,9 @@ else()
 endif()
 juce_add_plugin(HaviRadio
   COMPANY_NAME "UOC SOUND"
-  BUNDLE_ID "com.havilegrand.haviradio"
-  PLUGIN_MANUFACTURER_CODE Havi
-  PLUGIN_CODE HvRd
+  BUNDLE_ID "com.uocsound.radiobox"
+  PLUGIN_MANUFACTURER_CODE Uocs
+  PLUGIN_CODE RdBx
   FORMATS VST3
   PRODUCT_NAME "RadioBox"
   IS_SYNTH FALSE
@@ -29,7 +29,8 @@ juce_add_plugin(HaviRadio
   IS_MIDI_EFFECT FALSE
   COPY_PLUGIN_AFTER_BUILD FALSE
   VST3_CATEGORIES Fx Filter Distortion)
-juce_add_binary_data(RadioBoxArtwork SOURCES Assets/RadioBox-Olive.jpeg Assets/RadioBox-Red.jpeg Assets/RadioBox-Blue.jpeg)
+file(GLOB RADIOBOX_LAYERED_ARTWORK CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/Layered/*")
+juce_add_binary_data(RadioBoxArtwork SOURCES ${RADIOBOX_LAYERED_ARTWORK})
 juce_generate_juce_header(HaviRadio)
 target_sources(HaviRadio PRIVATE Source/Plugin.cpp Source/RadioEngine.h)
 target_compile_definitions(HaviRadio PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
