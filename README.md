@@ -24,3 +24,5 @@ Close FL Studio, run the platform installer, then open **Options > Manage plugin
 ## Build
 
 The GitHub Actions workflow compiles and tests both native targets, validates the VST3 with pluginval, and packages the installers. Local scripts are in `scripts/`.
+
+Build target: RadioBox 0.4.0.
